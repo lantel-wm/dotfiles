@@ -1,0 +1,26 @@
+[[plugin.prepend_fetchers]]
+id   = "git"
+name = "*"
+run  = "git"
+
+[[plugin.prepend_fetchers]]
+id   = "git"
+name = "*/"
+run  = "git"
+
+[opener]
+edit = [
+  { run = "hx %s", block = true, for = "unix" }
+]
+
+[open]
+prepend_rules = [
+  { mime = "text/*", use = "edit" },
+  { url = "*.json", use = "edit" },
+  { url = "*.toml", use = "edit" },
+  { url = "*.yaml", use = "edit" },
+  { url = "*.yml", use = "edit" },
+  { url = "*.md", use = "edit" },
+  { url = "*.py", use = "edit" },
+  { url = "*.rs", use = "edit" },
+]

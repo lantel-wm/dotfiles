@@ -1,0 +1,12 @@
+# Copy this file to ~/.config/zsh/local.zsh and edit it per machine.
+
+# Example: local proxy
+# export HTTP_PROXY=http://127.0.0.1:1087
+# export HTTPS_PROXY=http://127.0.0.1:1087
+
+# Example: prefer a locally-built Zellij binary
+# export ZELLIJ_BIN="$HOME/Projects/shell_tools/zellij/target/release/zellij"
+
+# Example: add machine-specific tool paths
+# path_prepend_if_dir "/Applications/MATLAB_R2025a.app/bin"
+# path_prepend_if_dir "$HOME/.duckdb/cli/latest"

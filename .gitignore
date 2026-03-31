@@ -1,0 +1,9 @@
+# machine-local overrides
+shell/.config/zsh/local.zsh
+shell/.config/zsh/login.local.zsh
+
+# editor / OS noise
+.DS_Store
+
+# helper outputs
+tmp/

@@ -1,0 +1,20 @@
+[user]
+	email = zyzh@smail.nju.edu.cn
+	name = Zhiyu Zhao
+
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+
+[core]
+    pager = delta
+
+[interactive]
+    diffFilter = delta --color-only
+
+[delta]
+    side-by-side = true
+    navigate = true
+    line-numbers = true

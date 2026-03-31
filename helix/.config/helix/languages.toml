@@ -1,0 +1,36 @@
+[language-server.ruff]
+command = "ruff"
+args = ["server"]
+
+[language-server.ruff.config.settings]
+lineLength = 88
+
+[language-server.ruff.config.settings.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[language-server.ty]
+command = "ty"
+args = ["server"]
+
+[language-server.rust-analyzer]
+command = "rust-analyzer"
+
+[language-server.rust-analyzer.config]
+checkOnSave = { command = "clippy" }
+
+[[language]]
+name = "python"
+language-servers = ["ruff", "ty"]
+auto-format = true
+formatter = { command = "ruff", args = ["format", "--stdin-filename", "%{buffer_name}"] }
+indent = { tab-width = 4, unit = "    " }
+
+[[language]]
+name = "rust"
+language-servers = ["rust-analyzer"]
+auto-format = true
+formatter = { command = "rustfmt" }
+
+[[language]]
+name = "csv"
+file-types = ["csv", "tsv"]

@@ -1,0 +1,50 @@
+theme = "onedark"
+
+[editor]
+line-number = "relative"
+mouse = false
+bufferline = "multiple"
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"
+
+[editor.lsp]
+display-messages = true
+display-progress-messages = false
+auto-signature-help = true
+display-inlay-hints = true
+display-signature-help-docs = true
+
+[editor.file-picker]
+hidden = false
+git-ignore = true
+git-global = true
+git-exclude = true
+
+[keys.normal]
+"C-j" = [
+  "move_line_down",
+  "move_line_down",
+  "move_line_down",
+  "move_line_down",
+  "move_line_down",
+  "move_line_down",
+  "move_line_down",
+  "move_line_down",
+  "move_line_down",
+  "move_line_down",
+]
+"C-k" = [
+  "move_line_up",
+  "move_line_up",
+  "move_line_up",
+  "move_line_up",
+  "move_line_up",
+  "move_line_up",
+  "move_line_up",
+  "move_line_up",
+  "move_line_up",
+  "move_line_up",
+]

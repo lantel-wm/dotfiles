@@ -1,0 +1,5 @@
+# Copy this file to ~/.config/zsh/login.local.zsh for login-shell-only settings.
+
+# Example: extra PATH for a single machine
+# path_prepend_if_dir "/Applications/MATLAB_R2025a.app/bin"
+# path_prepend_if_dir "$HOME/.duckdb/cli/latest"
