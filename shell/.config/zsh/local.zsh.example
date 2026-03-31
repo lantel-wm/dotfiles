@@ -10,3 +10,10 @@
 # Example: add machine-specific tool paths
 # path_prepend_if_dir "/Applications/MATLAB_R2025a.app/bin"
 # path_prepend_if_dir "$HOME/.duckdb/cli/latest"
+
+# Example: WSL browser integration
+# export BROWSER=wslview
+
+# Example: WSL-only proxy
+# export HTTP_PROXY=http://127.0.0.1:7890
+# export HTTPS_PROXY=http://127.0.0.1:7890

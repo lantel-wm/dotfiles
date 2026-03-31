@@ -245,6 +245,9 @@ fzj() {
 
 frg() {
   local query line file lineno
+  (( $+commands[rg] )) || { print -u2 -- "rg not found in PATH"; return 127; }
+  (( $+commands[fzf] )) || { print -u2 -- "fzf not found in PATH"; return 127; }
+  (( $+commands[bat] )) || { print -u2 -- "bat not found in PATH"; return 127; }
   query="${1:-.}"
 
   line=$(
@@ -269,6 +272,9 @@ frg() {
 
 ff() {
   local file
+  (( $+commands[fd] )) || { print -u2 -- "fd not found in PATH"; return 127; }
+  (( $+commands[fzf] )) || { print -u2 -- "fzf not found in PATH"; return 127; }
+  (( $+commands[bat] )) || { print -u2 -- "bat not found in PATH"; return 127; }
   file=$(
     fd . |
       fzf \
@@ -287,13 +293,16 @@ if [ -r "$HOME/.config/zsh/local.zsh" ]; then
   . "$HOME/.config/zsh/local.zsh"
 fi
 
-alias lg='lazygit'
-alias vi='hx'
-alias ls='eza'
-alias ll='eza -lh --group-directories-first --icons --hyperlink'
-alias la='ll -a'
-alias lt='eza --tree --level=2 --long --icons --git'
-alias lta='lt -a'
+(( $+commands[lazygit] )) && alias lg='lazygit'
+(( $+commands[hx] )) && alias vi='hx'
+
+if (( $+commands[eza] )); then
+  alias ls='eza'
+  alias ll='eza -lh --group-directories-first --icons --hyperlink'
+  alias la='ll -a'
+  alias lt='eza --tree --level=2 --long --icons --git'
+  alias lta='lt -a'
+fi
 
 if [[ -n "${ZELLIJ_BIN:-}" && -x "${ZELLIJ_BIN}" ]]; then
   alias tmux="${ZELLIJ_BIN}"

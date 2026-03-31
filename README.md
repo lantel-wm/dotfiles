@@ -35,12 +35,28 @@ Ubuntu / Debian / WSL:
 sudo apt install stow
 ```
 
+更完整的 Ubuntu / WSL 初始化可以直接运行:
+
+```bash
+./bootstrap-ubuntu-wsl.sh
+```
+
 ## 初始化
 
 ```bash
 git clone <your-dotfiles-repo> ~/dotfiles
 cd ~/dotfiles
 ./install.sh
+```
+
+Ubuntu / WSL 推荐顺序:
+
+```bash
+git clone <your-dotfiles-repo> ~/dotfiles
+cd ~/dotfiles
+./bootstrap-ubuntu-wsl.sh
+./dry-run.sh
+./backup-and-stow.sh
 ```
 
 `install.sh` 默认安装:
@@ -83,6 +99,7 @@ stow -d ~/dotfiles -t ~ ghostty-macos
 - `~/.config/zsh/login.local.zsh`
 
 可参考 `shell/.config/zsh/local.zsh.example`。
+登录 shell 专用覆盖可参考 `shell/.config/zsh/login.local.zsh.example`。
 
 适合放进本地覆盖的内容:
 
@@ -90,3 +107,9 @@ stow -d ~/dotfiles -t ~ ghostty-macos
 - 本地编译的 `zellij` 路径
 - `MATLAB`、`duckdb` 等只在部分机器存在的路径
 - 任何不想进入 Git 的环境变量
+
+WSL 常见本地覆盖:
+
+- `export BROWSER=wslview`
+- 任何只想在 WSL 中生效的代理配置
+- Windows 互操作命令相关的 alias 或函数
