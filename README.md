@@ -41,6 +41,8 @@ sudo apt install stow
 ./bootstrap-ubuntu-wsl.sh
 ```
 
+最短步骤见 [LINUX-WSL-QUICKSTART.md](./LINUX-WSL-QUICKSTART.md)。
+
 ## 初始化
 
 ```bash
