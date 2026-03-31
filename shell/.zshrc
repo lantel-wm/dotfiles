@@ -311,4 +311,3 @@ elif (( $+commands[zellij] )); then
 fi
 
 (( $+commands[zoxide] )) && eval "$(zoxide init zsh)"
-[[ -r "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"

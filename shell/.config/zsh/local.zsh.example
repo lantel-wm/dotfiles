@@ -7,6 +7,9 @@
 # Example: prefer a locally-built Zellij binary
 # export ZELLIJ_BIN="$HOME/Projects/shell_tools/zellij/target/release/zellij"
 
+# Example: keep powerlevel10k local-only
+# [[ -r "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
+#
 # Example: add machine-specific tool paths
 # path_prepend_if_dir "/Applications/MATLAB_R2025a.app/bin"
 # path_prepend_if_dir "$HOME/.duckdb/cli/latest"

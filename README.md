@@ -105,6 +105,7 @@ stow -d ~/dotfiles -t ~ ghostty-macos
 
 - 代理
 - 本地编译的 `zellij` 路径
+- `p10k` / 其他只想本机使用的 prompt 配置
 - `MATLAB`、`duckdb` 等只在部分机器存在的路径
 - 任何不想进入 Git 的环境变量
 
