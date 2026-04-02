@@ -15,4 +15,4 @@ case "$(uname -s)" in
     ;;
 esac
 
-stow -n -v -d "$repo_dir" -t "$HOME" "${packages[@]}"
+stow -n -R -v -d "$repo_dir" -t "$HOME" "${packages[@]}"

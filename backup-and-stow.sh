@@ -40,6 +40,7 @@ targets=(
   ".config/zellij/config.kdl"
   ".local/bin/env"
   ".local/bin/env.fish"
+  ".local/bin/zellij-session-picker"
 )
 
 case "$(uname -s)" in
@@ -67,7 +68,7 @@ for rel in "${targets[@]}"; do
   backup_target "$rel"
 done
 
-stow -v -d "$repo_dir" -t "$HOME" "${packages[@]}"
+stow -R -v -d "$repo_dir" -t "$HOME" "${packages[@]}"
 
 cat <<EOF
 

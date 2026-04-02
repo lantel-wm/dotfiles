@@ -69,8 +69,20 @@ cd ~/dotfiles
 也可以手动执行:
 
 ```bash
-stow -d ~/dotfiles -t ~ shell git conda helix nvim zellij yazi
-stow -d ~/dotfiles -t ~ ghostty-macos
+stow -R -d ~/dotfiles -t ~ shell git conda helix nvim zellij yazi
+stow -R -d ~/dotfiles -t ~ ghostty-macos
+```
+
+拉取仓库更新后，如有新增文件或链接，直接重新运行:
+
+```bash
+./install.sh
+```
+
+或者手动:
+
+```bash
+stow -R -d ~/dotfiles -t ~ shell git conda helix nvim zellij yazi
 ```
 
 ## 首次接管现有配置
@@ -90,7 +102,7 @@ stow -d ~/dotfiles -t ~ ghostty-macos
 这个脚本会:
 
 - 先把与本仓库冲突的现有文件移动到一个时间戳备份目录
-- 再执行 `stow`
+- 再执行 `stow -R`
 - 不会删除备份
 
 ## 本地覆盖

@@ -60,5 +60,7 @@ keybind = global:ctrl+grave_accent=toggle_quick_terminal
 keybind = cmd+shift+e=equalize_splits
 keybind = cmd+shift+f=toggle_split_zoom
 keybind = cmd+shift+comma=reload_config
+# Run the zellij session picker from a shell prompt.
+keybind = cmd+shift+j=text:"\x15fzj\n"
 
 scrollback-limit = 25000000

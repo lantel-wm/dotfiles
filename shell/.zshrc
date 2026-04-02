@@ -205,6 +205,7 @@ fzj() {
         --prompt='zellij session > ' \
         --height='80%' \
         --layout='reverse' \
+        --cycle \
         --border \
         --preview-window='right,70%,border-left' \
         --preview '
