@@ -6,36 +6,46 @@ setopt pipefail no_aliases
 (( $+commands[zellij] )) || { print -u2 -- "zellij not found in PATH"; exit 127; }
 (( $+commands[fzf] )) || { print -u2 -- "fzf not found in PATH"; exit 127; }
 
-local sessions selected rc
+local sessions session_details selected rc
+local -a session_names detail_lines items
+local idx
 
 sessions="$(zellij list-sessions --short --no-formatting 2>/dev/null)"
 rc=$?
 (( rc == 0 )) || { print -u2 -- "failed to list zellij sessions"; exit $rc; }
 [[ -n $sessions ]] || { print -u2 -- "no active zellij sessions"; exit 1; }
 
+session_details="$(zellij list-sessions --no-formatting 2>/dev/null)"
+rc=$?
+(( rc == 0 )) || { print -u2 -- "failed to read zellij session details"; exit $rc; }
+
+session_names=("${(@f)sessions}")
+detail_lines=("${(@f)session_details}")
+
+for (( idx = 1; idx <= ${#session_names}; idx++ )); do
+  items+=("${session_names[idx]}"$'\t'"${detail_lines[idx]:-${session_names[idx]}}")
+done
+
 selected="$(
-  print -r -- "$sessions" |
+  printf '%s\n' "${items[@]}" |
     fzf \
+      --delimiter=$'\t' \
+      --with-nth=1 \
       --prompt='zellij session > ' \
       --layout='reverse' \
       --cycle \
       --border \
-      --header='Enter switch, Esc cancel, Ctrl-/ preview' \
-      --preview-window='right,55%,border-left,hidden' \
+      --header='Enter switch, Esc cancel, Ctrl-/ toggle preview' \
+      --preview-window='right,55%,border-left' \
       --bind='ctrl-/:toggle-preview' \
       --preview '
-        session={}
-        zellij list-sessions 2>/dev/null |
-          awk -v name="$session" '"'"'index($0, name) { print; exit }'"'"'
-        clients="$(
-          zellij --session "$session" action list-clients 2>/dev/null |
-            awk "NR > 1 && NF { count++ } END { print count + 0 }"
-        )"
-        printf "\033[1;33mClients:\033[0m %s\n" "$clients"
+        printf "%s\n" "{2}"
       '
 )"
 rc=$?
 (( rc == 0 )) && [[ -n $selected ]] || exit $rc
+
+selected="${selected%%$'\t'*}"
 
 if [[ -n ${ZELLIJ:-} ]]; then
   zellij action switch-session -- "$selected"

@@ -14,7 +14,7 @@ keybinds clear-defaults=true {
         bind "Alt d" { Detach; }
         bind "Alt s" {
             Run "zellij-session-picker" {
-                floating true
+                in_place true
                 close_on_exit true
                 name "Session Picker"
             }
@@ -310,7 +310,7 @@ web_client {
 }
 
 pane_frames false
-simplified_ui true
+// simplified_ui true
 default_layout "compact"
 
 theme "catppuccin-macchiato"
