@@ -64,3 +64,4 @@ keybind = cmd+shift+comma=reload_config
 keybind = cmd+shift+j=text:"\x15fzj\n"
 
 scrollback-limit = 25000000
+bell-features = audio

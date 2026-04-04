@@ -188,12 +188,21 @@ fzj() {
   emulate -L zsh
   setopt pipefail no_aliases
 
-  (( $+commands[zellij] )) || { print -u2 -- "zellij not found in PATH"; return 127; }
   (( $+commands[fzf] )) || { print -u2 -- "fzf not found in PATH"; return 127; }
   (( $+commands[jq] )) || { print -u2 -- "jq not found in PATH"; return 127; }
 
-  local sessions selected rc
-  sessions="$(zellij list-sessions --short --no-formatting 2>/dev/null)"
+  local zellij_bin sessions selected rc
+  if [[ -n "${ZELLIJ_BIN:-}" && -x "${ZELLIJ_BIN}" ]]; then
+    zellij_bin="${ZELLIJ_BIN}"
+  elif [[ -n "${commands[zellij]:-}" && -x "${commands[zellij]}" ]]; then
+    zellij_bin="${commands[zellij]}"
+  else
+    print -u2 -- "zellij binary not found; set ZELLIJ_BIN or install zellij"
+    return 127
+  fi
+  local -x ZELLIJ_BIN_FZJ="${zellij_bin}"
+
+  sessions="$("${zellij_bin}" list-sessions --short --no-formatting 2>/dev/null)"
   rc=$?
   (( rc == 0 )) || { print -u2 -- "failed to list zellij sessions"; return $rc; }
   [[ -n $sessions ]] || { print -u2 -- "no active zellij sessions"; return 1; }
@@ -210,11 +219,11 @@ fzj() {
         --preview-window='right,70%,border-left' \
         --preview '
           session={}
-          zellij list-sessions 2>/dev/null |
+          "$ZELLIJ_BIN_FZJ" list-sessions 2>/dev/null |
             awk -v name="$session" '"'"'index($0, name) { print; exit }'"'"'
-          clients="$(zellij --session "$session" action list-clients 2>/dev/null | awk "NR > 1 && NF { count++ } END { print count + 0 }")"
+          clients="$("$ZELLIJ_BIN_FZJ" --session "$session" action list-clients 2>/dev/null | awk "NR > 1 && NF { count++ } END { print count + 0 }")"
           printf "\033[1;33mClients:\033[0m %s\n" "$clients"
-          zellij --session "$session" action list-panes --json --all 2>/dev/null |
+          "$ZELLIJ_BIN_FZJ" --session "$session" action list-panes --json --all 2>/dev/null |
             jq -r '"'"'
               map(select((.is_plugin | not) and .is_selectable and (.exited | not)))
               | sort_by([
@@ -237,9 +246,9 @@ fzj() {
   (( rc == 0 )) && [[ -n $selected ]] || return $rc
 
   if [[ -n ${ZELLIJ:-} ]]; then
-    zellij action switch-session -- "$selected"
+    "${zellij_bin}" action switch-session -- "$selected"
   else
-    zellij attach -- "$selected" 2> >(grep -Fvx "Bye from Zellij!" >&2)
+    "${zellij_bin}" attach -- "$selected" 2> >(grep -Fvx "Bye from Zellij!" >&2)
     printf '\033[1A\r\033[2K\r'
   fi
 }
@@ -312,3 +321,12 @@ elif (( $+commands[zellij] )); then
 fi
 
 (( $+commands[zoxide] )) && eval "$(zoxide init zsh)"
+
+if [[ -x "${ZELLIJ_BIN}" ]]; then
+  unalias zellij 2>/dev/null
+  unfunction zellij 2>/dev/null
+  zellij() {
+    "$ZELLIJ_BIN" "$@"
+  }
+  alias tmux="zellij"
+fi

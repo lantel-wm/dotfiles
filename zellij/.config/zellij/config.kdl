@@ -13,7 +13,7 @@ keybinds clear-defaults=true {
         bind "Alt 9" { GoToTab 9; }
         bind "Alt d" { Detach; }
         bind "Alt s" {
-            Run "zellij-session-picker" {
+            Run "/bin/zsh" "-lc" "$HOME/.local/bin/zellij-session-picker" {
                 in_place true
                 close_on_exit true
                 name "Session Picker"
@@ -311,7 +311,7 @@ web_client {
 
 pane_frames false
 // simplified_ui true
-default_layout "compact"
+default_layout "disable-status-bar"
 
 theme "catppuccin-macchiato"
 default_mode "locked"

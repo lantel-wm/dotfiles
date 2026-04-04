@@ -1,21 +1,50 @@
-#!/usr/bin/env zsh
+#!/bin/zsh
 
 emulate -L zsh
 setopt pipefail no_aliases
 
-(( $+commands[zellij] )) || { print -u2 -- "zellij not found in PATH"; exit 127; }
-(( $+commands[fzf] )) || { print -u2 -- "fzf not found in PATH"; exit 127; }
+resolve_bin() {
+  local candidate
+  for candidate in "$@"; do
+    [[ -n "$candidate" ]] || continue
+    [[ -x "$candidate" ]] && {
+      print -r -- "$candidate"
+      return 0
+    }
+  done
+  return 1
+}
+
+local zellij_bin fzf_bin
+
+zellij_bin="$(
+  resolve_bin \
+    "${ZELLIJ_BIN:-}" \
+    "$HOME/Projects/shell_tools/zellij/target/release/zellij" \
+    /opt/homebrew/bin/zellij \
+    /usr/local/bin/zellij
+)"
+[[ -n "$zellij_bin" ]] || { print -u2 -- "zellij binary not found"; exit 127; }
+
+fzf_bin="$(
+  resolve_bin \
+    "${FZF_BIN:-}" \
+    /opt/homebrew/bin/fzf \
+    /usr/local/bin/fzf \
+    "${commands[fzf]:-}"
+)"
+[[ -n "$fzf_bin" ]] || { print -u2 -- "fzf binary not found"; exit 127; }
 
 local sessions session_details selected rc
 local -a session_names detail_lines items
 local idx
 
-sessions="$(zellij list-sessions --short --no-formatting 2>/dev/null)"
+sessions="$("$zellij_bin" list-sessions --short --no-formatting 2>/dev/null)"
 rc=$?
 (( rc == 0 )) || { print -u2 -- "failed to list zellij sessions"; exit $rc; }
 [[ -n $sessions ]] || { print -u2 -- "no active zellij sessions"; exit 1; }
 
-session_details="$(zellij list-sessions --no-formatting 2>/dev/null)"
+session_details="$("$zellij_bin" list-sessions --no-formatting 2>/dev/null)"
 rc=$?
 (( rc == 0 )) || { print -u2 -- "failed to read zellij session details"; exit $rc; }
 
@@ -28,7 +57,7 @@ done
 
 selected="$(
   printf '%s\n' "${items[@]}" |
-    fzf \
+    "$fzf_bin" \
       --delimiter=$'\t' \
       --with-nth=1 \
       --prompt='zellij session > ' \
@@ -48,7 +77,7 @@ rc=$?
 selected="${selected%%$'\t'*}"
 
 if [[ -n ${ZELLIJ:-} ]]; then
-  zellij action switch-session -- "$selected"
+  "$zellij_bin" action switch-session -- "$selected"
 else
-  exec zellij attach -- "$selected"
+  exec "$zellij_bin" attach -- "$selected"
 fi
