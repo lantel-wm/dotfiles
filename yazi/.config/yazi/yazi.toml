@@ -10,7 +10,7 @@ run  = "git"
 
 [opener]
 edit = [
-  { run = "hx %s", block = true, for = "unix" }
+  { run = "nvim %s", block = true, for = "unix" }
 ]
 
 [open]

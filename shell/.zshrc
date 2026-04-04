@@ -304,6 +304,7 @@ if [ -r "$HOME/.config/zsh/local.zsh" ]; then
 fi
 
 (( $+commands[lazygit] )) && alias lg='lazygit'
+(( $+commands[nvim] )) && alias vim='nvim'
 (( $+commands[hx] )) && alias vi='hx'
 
 if (( $+commands[eza] )); then

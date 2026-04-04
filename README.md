@@ -128,3 +128,35 @@ WSL 常见本地覆盖:
 - `export BROWSER=wslview`
 - 任何只想在 WSL 中生效的代理配置
 - Windows 互操作命令相关的 alias 或函数
+
+## Neovim 包
+
+`nvim/` 现在是一个不依赖 `LazyVim` 的极简自配方案，继续通过 `stow` 接管到 `~/.config/nvim`。
+
+- 插件管理: `lazy.nvim`
+- 主题: `tokyonight.nvim`
+- 语法树: `nvim-treesitter`
+- LSP: `nvim-lspconfig`
+- 补全: `blink.cmp`（锁在 `1.*`，避免误跟进 V2）
+- lint: `nvim-lint`
+- 注释: `Comment.nvim` + `nvim-ts-context-commentstring`
+
+语言默认覆盖:
+
+- Python: `basedpyright` + `ruff`
+- Rust: `rust-analyzer`（保存检查走 `clippy`）
+- Shell: `bashls`，`sh/bash` 额外走 `shellcheck`
+- C++: `clangd --background-index --clang-tidy`
+- TypeScript: `ts_ls` + `eslint`
+
+推荐系统依赖:
+
+- `nvim >= 0.12`
+- `git`、`curl`、`tree-sitter-cli`、可用的 C 编译器
+- `basedpyright`、`ruff`
+- `rust-analyzer`
+- `clangd`
+- `bash-language-server`
+- `shellcheck`
+- `typescript-language-server`
+- `eslint` 或 `eslint_d`

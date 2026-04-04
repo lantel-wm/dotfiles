@@ -10,45 +10,20 @@ repo_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 backup_root="$HOME/.dotfiles-backups/$(date +%Y%m%d-%H%M%S)"
 
 packages=(shell git conda helix nvim zellij yazi)
-targets=(
-  ".condarc"
-  ".gitconfig"
-  ".profile"
-  ".zimrc"
-  ".zprofile"
-  ".zshenv"
-  ".zshrc"
-  ".config/fish/conf.d/uv.env.fish"
-  ".config/git/ignore"
-  ".config/helix/config.toml"
-  ".config/helix/languages.toml"
-  ".config/nvim/.neoconf.json"
-  ".config/nvim/init.lua"
-  ".config/nvim/lazy-lock.json"
-  ".config/nvim/lazyvim.json"
-  ".config/nvim/lua/config/autocmds.lua"
-  ".config/nvim/lua/config/keymaps.lua"
-  ".config/nvim/lua/config/lazy.lua"
-  ".config/nvim/lua/config/options.lua"
-  ".config/nvim/lua/plugins/yazi.lua"
-  ".config/nvim/stylua.toml"
-  ".config/yazi/init.lua"
-  ".config/yazi/keymap.toml"
-  ".config/yazi/package.toml"
-  ".config/yazi/theme.toml"
-  ".config/yazi/yazi.toml"
-  ".config/zellij/config.kdl"
-  ".local/bin/env"
-  ".local/bin/env.fish"
-  ".local/bin/zellij-session-picker"
-)
 
 case "$(uname -s)" in
   Darwin)
     packages+=(ghostty-macos)
-    targets+=(".config/ghostty/config")
     ;;
 esac
+
+collect_targets() {
+  local package="$1"
+
+  git -C "$repo_dir" ls-files -z -- "$package" | while IFS= read -r -d '' path; do
+    printf '%s\n' "${path#"$package"/}"
+  done
+}
 
 backup_target() {
   local rel="$1"
@@ -62,6 +37,12 @@ backup_target() {
   mv "$src" "$dst"
   echo "backed up $rel"
 }
+
+mapfile -t targets < <(
+  for package in "${packages[@]}"; do
+    collect_targets "$package"
+  done | sort -u
+)
 
 mkdir -p "$backup_root"
 for rel in "${targets[@]}"; do
