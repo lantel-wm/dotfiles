@@ -95,6 +95,9 @@ local function contents()
     "Notes",
     "  Python LSP only starts inside real Python projects",
     "  Treesitter parsers are installed in a dedicated runtime path",
+    "  Quotes and brackets auto-close in insert mode",
+    "  <CR> expands empty (), [], {} into an indented block",
+    '  Python """ auto-completes to paired triple quotes',
     "  Run :TSInstallConfigured on a fresh machine to install configured parsers",
   }
 end

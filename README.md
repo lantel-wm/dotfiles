@@ -142,12 +142,18 @@ WSL 常见本地覆盖:
 - 格式化: `conform.nvim`
 - lint: `nvim-lint`
 - 注释: `Comment.nvim` + `nvim-ts-context-commentstring`
+- 成对符号: `mini.pairs`
 
 常用入口:
 
 - `<leader>h` 或 `:Cheatsheet`: 打开或关闭内置快捷键速查表
 - `:TSInstallConfigured`: 在新机器上安装这套配置声明的 Tree-sitter parsers
 - `<leader>cf` 或 `:Format`: 走 `conform.nvim` 统一格式化当前 buffer
+
+输入补全补充:
+
+- 空的 `() [] {}` 中间按 `<CR>` 会展开成带缩进的三行结构
+- Python 文件里输入 `"""` 会自动补成成对的 triple quotes
 
 语言默认覆盖:
 
