@@ -4,6 +4,7 @@ shell/.config/zsh/login.local.zsh
 
 # editor / OS noise
 .DS_Store
+nvim.log
 
 # helper outputs
 tmp/
