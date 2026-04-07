@@ -78,6 +78,7 @@ return {
   {
     "catppuccin/nvim",
     name = "catppuccin",
+    lazy = false,
     priority = 1000,
     opts = {
       flavour = "macchiato",
@@ -100,6 +101,68 @@ return {
   {
     "nvim-telescope/telescope.nvim",
     branch = "master",
+    cmd = { "Telescope" },
+    keys = {
+      {
+        "<leader>ff",
+        function()
+          require("telescope.builtin").find_files()
+        end,
+        desc = "Find files",
+      },
+      {
+        "<leader>fg",
+        function()
+          require("telescope.builtin").live_grep()
+        end,
+        desc = "Live grep",
+      },
+      {
+        "<leader>fb",
+        function()
+          require("telescope.builtin").buffers()
+        end,
+        desc = "Buffer list",
+      },
+      {
+        "<leader>/",
+        function()
+          local themes = require("telescope.themes")
+          require("telescope.builtin").current_buffer_fuzzy_find(themes.get_dropdown({
+            previewer = false,
+          }))
+        end,
+        desc = "Search current buffer",
+      },
+      {
+        "<leader>fr",
+        function()
+          require("telescope.builtin").resume()
+        end,
+        desc = "Resume search",
+      },
+      {
+        "<leader>fd",
+        function()
+          require("telescope.builtin").diagnostics({ bufnr = 0 })
+        end,
+        desc = "Buffer diagnostics picker",
+      },
+      {
+        "<leader>fk",
+        function()
+          require("telescope.builtin").keymaps()
+        end,
+        desc = "Keymaps picker",
+      },
+      {
+        "<leader>fh",
+        function()
+          require("telescope.builtin").help_tags()
+        end,
+        desc = "Help tags",
+      },
+    },
     dependencies = {
       "nvim-lua/plenary.nvim",
       "nvim-telescope/telescope-fzf-native.nvim",
@@ -108,10 +171,25 @@ return {
     config = function()
       local telescope = require("telescope")
       local actions = require("telescope.actions")
-      local builtin = require("telescope.builtin")
 
       telescope.setup({
         defaults = {
+          cache_picker = {
+            num_pickers = 10,
+          },
+          file_ignore_patterns = {
+            "^%.git/",
+            "^node_modules/",
+            "^%.venv/",
+            "^venv/",
+            "^__pycache__/",
+            "^%.ruff_cache/",
+            "^%.pytest_cache/",
+            "^%.mypy_cache/",
+            "^dist/",
+            "^build/",
+            "^tmp/",
+          },
           sorting_strategy = "ascending",
           layout_config = {
             prompt_position = "top",
@@ -123,6 +201,10 @@ return {
           },
         },
         pickers = {
+          buffers = {
+            ignore_current_buffer = true,
+            sort_lastused = true,
+          },
           lsp_references = {
             show_line = false,
           },
@@ -130,15 +212,12 @@ return {
       })
 
       pcall(telescope.load_extension, "fzf")
-
-      vim.keymap.set("n", "<leader>ff", builtin.find_files, { desc = "Find files" })
-      vim.keymap.set("n", "<leader>fg", builtin.live_grep, { desc = "Live grep" })
-      vim.keymap.set("n", "<leader>fb", builtin.buffers, { desc = "Find buffers" })
     end,
   },
   {
     "nvim-treesitter/nvim-treesitter",
     branch = "main",
+    lazy = false,
     build = ":TSUpdate",
     config = function()
       local treesitter = require("nvim-treesitter")
@@ -159,20 +238,11 @@ return {
         end,
       })
 
-      local installed = {}
-      for _, lang in ipairs(treesitter.get_installed("parsers")) do
-        installed[lang] = true
-      end
-
-      local missing = vim.tbl_filter(function(lang)
-        return not installed[lang]
-      end, treesitter_languages)
-
-      if #missing > 0 then
-        vim.schedule(function()
-          treesitter.install(missing, { summary = false })
-        end)
-      end
+      vim.api.nvim_create_user_command("TSInstallConfigured", function()
+        treesitter.install(treesitter_languages, { summary = true })
+      end, {
+        desc = "Install configured Tree-sitter parsers",
+      })
     end,
   },
   {
@@ -184,7 +254,10 @@ return {
         nerd_font_variant = "mono",
       },
       completion = {
-        documentation = { auto_show = false },
+        documentation = {
+          auto_show = true,
+          auto_show_delay_ms = 500,
+        },
       },
       sources = {
         default = { "lsp", "path", "snippets", "buffer" },
@@ -192,10 +265,14 @@ return {
       fuzzy = {
         implementation = "prefer_rust_with_warning",
       },
+      signature = {
+        enabled = true,
+      },
     },
   },
   {
     "neovim/nvim-lspconfig",
+    lazy = false,
     dependencies = { "saghen/blink.cmp" },
     config = function()
       require("config.lsp").setup()
@@ -204,6 +281,7 @@ return {
   {
     "lewis6991/gitsigns.nvim",
     version = "1.*",
+    event = { "BufReadPre", "BufNewFile" },
     dependencies = { "nvim-lua/plenary.nvim" },
     opts = function()
       local function toggle_diffthis()
@@ -283,6 +361,7 @@ return {
   },
   {
     "mfussenegger/nvim-lint",
+    event = { "BufReadPre", "BufNewFile" },
     config = function()
       local lint = require("lint")
 
@@ -343,17 +422,73 @@ return {
     end,
   },
   {
-    "JoosepAlviste/nvim-ts-context-commentstring",
-    opts = {
-      enable_autocmd = false,
-    },
-  },
-  {
     "numToStr/Comment.nvim",
-    dependencies = { "JoosepAlviste/nvim-ts-context-commentstring" },
+    keys = {
+      { "gc", mode = { "n", "x", "o" } },
+      { "gb", mode = { "n", "x", "o" } },
+      { "gco", mode = "n" },
+      { "gcO", mode = "n" },
+      { "gcA", mode = "n" },
+      { "gbc", mode = "n" },
+    },
+    dependencies = {
+      {
+        "JoosepAlviste/nvim-ts-context-commentstring",
+        lazy = true,
+        opts = {
+          enable_autocmd = false,
+        },
+      },
+    },
     opts = function()
       return {
         pre_hook = require("ts_context_commentstring.integrations.comment_nvim").create_pre_hook(),
+      }
+    end,
+  },
+  {
+    "stevearc/conform.nvim",
+    cmd = { "ConformInfo" },
+    opts = function()
+      local prettier_local = function(bufnr)
+        local cmd = find_executable(bufnr, { "prettierd", "prettier" })
+        if not cmd then
+          return
+        end
+
+        return {
+          inherit = cmd:match("prettierd$") and "prettierd" or "prettier",
+          command = cmd,
+        }
+      end
+
+      return {
+        default_format_opts = {
+          lsp_format = "fallback",
+        },
+        notify_no_formatters = false,
+        formatters = {
+          prettier_local = prettier_local,
+          shfmt = {
+            append_args = { "-i", "2" },
+          },
+        },
+        formatters_by_ft = {
+          c = { "clang_format" },
+          cpp = { "clang_format" },
+          javascript = { "prettier_local" },
+          javascriptreact = { "prettier_local" },
+          json = { "prettier_local" },
+          lua = { "stylua" },
+          markdown = { "prettier_local" },
+          python = { "ruff_format" },
+          rust = { "rustfmt" },
+          sh = { "shfmt" },
+          typescript = { "prettier_local" },
+          typescriptreact = { "prettier_local" },
+          yaml = { "prettier_local" },
+          zsh = { "shfmt" },
+        },
       }
     end,
   },

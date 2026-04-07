@@ -1,8 +1,6 @@
 local autocmd = vim.api.nvim_create_autocmd
 local augroup = vim.api.nvim_create_augroup
 
-vim.treesitter.language.register("bash", { "zsh" })
-
 autocmd("TextYankPost", {
   group = augroup("user-highlight-yank", { clear = true }),
   callback = function()

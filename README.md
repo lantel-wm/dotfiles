@@ -139,8 +139,15 @@ WSL 常见本地覆盖:
 - LSP: `nvim-lspconfig`
 - 补全: `blink.cmp`（锁在 `1.*`，避免误跟进 V2）
 - Git 改动: `gitsigns.nvim`
+- 格式化: `conform.nvim`
 - lint: `nvim-lint`
 - 注释: `Comment.nvim` + `nvim-ts-context-commentstring`
+
+常用入口:
+
+- `<leader>h` 或 `:Cheatsheet`: 打开或关闭内置快捷键速查表
+- `:TSInstallConfigured`: 在新机器上安装这套配置声明的 Tree-sitter parsers
+- `<leader>cf` 或 `:Format`: 走 `conform.nvim` 统一格式化当前 buffer
 
 语言默认覆盖:
 

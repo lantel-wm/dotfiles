@@ -1,4 +1,5 @@
 local M = {}
+local diagnostics = require("config.diagnostics")
 local python_root_markers = {
   "pyrightconfig.json",
   "pyproject.toml",
@@ -185,6 +186,7 @@ local function telescope_location_picker(title, items, bufnr)
   local conf = require("telescope.config").values
   local make_entry = require("telescope.make_entry")
   local cwd = picker_cwd(bufnr)
+  local basename_counts = {}
   local displayer = entry_display.create({
     separator = " ",
     items = {
@@ -192,9 +194,25 @@ local function telescope_location_picker(title, items, bufnr)
     },
   })
 
+  for _, item in ipairs(items) do
+    local basename = vim.fs.basename(item.filename)
+    basename_counts[basename] = (basename_counts[basename] or 0) + 1
+  end
+
   local entry_maker = function(item)
-    local relative = vim.fn.fnamemodify(item.filename, ":.")
-    local display_name = vim.fn.fnamemodify(relative, ":t")
+    local relative = (cwd and vim.fs.relpath(cwd, item.filename)) or item.filename
+    local basename = vim.fs.basename(relative)
+    local display_name = basename
+
+    if (basename_counts[basename] or 0) > 1 then
+      local parent = vim.fn.fnamemodify(relative, ":h:t")
+
+      if parent ~= "" and parent ~= "." then
+        display_name = string.format("%s/%s", parent, basename)
+      else
+        display_name = relative
+      end
+    end
 
     return make_entry.set_default_entry_mt({
       value = item,
@@ -297,19 +315,7 @@ end
 function M.setup()
   local capabilities = require("blink.cmp").get_lsp_capabilities()
 
-  vim.diagnostic.config({
-    severity_sort = true,
-    underline = true,
-    update_in_insert = false,
-    virtual_text = {
-      spacing = 2,
-      source = "if_many",
-    },
-    float = {
-      border = "rounded",
-      source = "if_many",
-    },
-  })
+  diagnostics.setup()
 
   vim.api.nvim_create_autocmd("LspAttach", {
     group = vim.api.nvim_create_augroup("user-lsp-attach", { clear = true }),
@@ -368,6 +374,11 @@ function M.setup()
     end,
     before_init = function(init_params, config)
       local root = init_params.rootUri and vim.uri_to_fname(init_params.rootUri) or init_params.rootPath
+      local pyright_config = root and (root .. "/pyrightconfig.json") or nil
+
+      if pyright_config and vim.uv.fs_stat(pyright_config) then
+        return
+      end
 
       config.settings = config.settings or {}
       config.settings.basedpyright = config.settings.basedpyright or {}
