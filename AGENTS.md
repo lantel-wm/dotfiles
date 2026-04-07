@@ -49,6 +49,7 @@
 - 格式化统一走 `conform.nvim`，入口是 `<leader>cf` 和 `:Format`
 - 内置快捷键速查表入口是 `<leader>h` 和 `:Cheatsheet`
 - LSP、lint、formatter 的外部程序应尽量和终端工作流保持一致，不要为了编辑器再造一套不同命令
+- Python 当前用 `ty + ruff` 双 LSP；`ruff` 不再经由 `nvim-lint` 重复上报 diagnostics
 - 如果修改了键位、主题、插件结构或外部工具映射，应该同步更新 `README.md` 和 cheatsheet
 
 ## Shell / Yazi / Zellij 约定

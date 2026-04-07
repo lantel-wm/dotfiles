@@ -157,7 +157,7 @@ WSL 常见本地覆盖:
 
 语言默认覆盖:
 
-- Python: `basedpyright` + `ruff`
+- Python: `ty` + `ruff`
 - Rust: `rust-analyzer`（保存检查走 `clippy`）
 - Shell: `bashls`，`sh/bash` 额外走 `shellcheck`
 - C++: `clangd --background-index --clang-tidy`
@@ -167,7 +167,7 @@ WSL 常见本地覆盖:
 
 - `nvim >= 0.12`
 - `git`、`curl`、`tree-sitter-cli`、可用的 C 编译器
-- `basedpyright`、`ruff`
+- `ty`、`ruff`
 - `rust-analyzer`
 - `clangd`
 - `bash-language-server`

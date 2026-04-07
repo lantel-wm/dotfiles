@@ -378,7 +378,6 @@ return {
         bash = { "shellcheck" },
         javascript = { "eslint_local" },
         javascriptreact = { "eslint_local" },
-        python = { "ruff" },
         sh = { "shellcheck" },
         typescript = { "eslint_local" },
         typescriptreact = { "eslint_local" },
@@ -390,9 +389,6 @@ return {
       local available = {
         eslint_local = function()
           return find_executable(0, { "eslint_d", "eslint" }) ~= nil
-        end,
-        ruff = function()
-          return find_executable(0, { "ruff" }) ~= nil
         end,
         shellcheck = function()
           return find_executable(0, { "shellcheck" }) ~= nil

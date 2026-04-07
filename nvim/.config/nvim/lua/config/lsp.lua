@@ -1,7 +1,7 @@
 local M = {}
 local diagnostics = require("config.diagnostics")
 local python_root_markers = {
-  "pyrightconfig.json",
+  "ty.toml",
   "pyproject.toml",
   "setup.py",
   "setup.cfg",
@@ -9,19 +9,8 @@ local python_root_markers = {
   "Pipfile",
   "uv.lock",
   "poetry.lock",
-}
-local python_base_excludes = {
-  "**/.git",
-  "**/.hg",
-  "**/.svn",
-  "**/__pycache__",
-  "**/.mypy_cache",
-  "**/.pytest_cache",
-  "**/.ruff_cache",
-  "**/.tox",
-  "**/.venv",
-  "**/venv",
-  "**/node_modules",
+  "ruff.toml",
+  ".ruff.toml",
 }
 local workspace_root_markers = {
   ".git",
@@ -49,78 +38,40 @@ local function python_project_root(bufnr)
   return vim.fs.root(bufnr, python_root_markers)
 end
 
-local python_gitignore_exclude_cache = {}
-
-local function merge_unique_patterns(...)
-  local merged = {}
-  local seen = {}
-
-  for i = 1, select("#", ...) do
-    for _, pattern in ipairs(select(i, ...)) do
-      if pattern and pattern ~= "" and not seen[pattern] then
-        seen[pattern] = true
-        table.insert(merged, pattern)
-      end
-    end
+local function valid_python_workspace_root(root)
+  if not root or root == "" or not vim.uv.fs_stat(root) then
+    return false
   end
 
-  return merged
+  return vim.fs.root(root, python_root_markers) == root
 end
 
-local function gitignore_to_pyright_pattern(line)
-  local pattern = vim.trim(line)
-
-  if pattern == "" or vim.startswith(pattern, "#") or vim.startswith(pattern, "!") then
-    return nil
+local function remember_python_workspace_root(root)
+  if not valid_python_workspace_root(root) then
+    return
   end
 
-  if vim.startswith(pattern, "\\#") or vim.startswith(pattern, "\\!") then
-    pattern = pattern:sub(2)
-  end
-
-  local anchored = vim.startswith(pattern, "/")
-  pattern = pattern:gsub("^/", ""):gsub("/$", ""):gsub("^%./", "")
-
-  if pattern == "" then
-    return nil
-  end
-
-  if anchored or pattern:find("/", 1, true) then
-    return pattern
-  end
-
-  return "**/" .. pattern
+  vim.w.python_workspace_root = root
+  vim.t.python_workspace_root = root
 end
 
-local function python_gitignore_excludes(root)
-  if not root or root == "" then
-    return {}
+local function inherited_python_workspace_root()
+  if valid_python_workspace_root(vim.w.python_workspace_root) then
+    return vim.w.python_workspace_root
   end
 
-  if python_gitignore_exclude_cache[root] then
-    return python_gitignore_exclude_cache[root]
+  if valid_python_workspace_root(vim.t.python_workspace_root) then
+    return vim.t.python_workspace_root
   end
 
-  local gitignore = root .. "/.gitignore"
-  local ok, lines = pcall(vim.fn.readfile, gitignore)
-
-  if not ok then
-    python_gitignore_exclude_cache[root] = {}
-    return python_gitignore_exclude_cache[root]
+  local cwd_root = vim.fs.root(vim.fn.getcwd(), python_root_markers)
+  if valid_python_workspace_root(cwd_root) then
+    return cwd_root
   end
-
-  local patterns = {}
-
-  for _, line in ipairs(lines) do
-    table.insert(patterns, gitignore_to_pyright_pattern(line))
-  end
-
-  python_gitignore_exclude_cache[root] = merge_unique_patterns(patterns)
-  return python_gitignore_exclude_cache[root]
 end
 
-local function python_analysis_excludes(root)
-  return merge_unique_patterns(python_base_excludes, python_gitignore_excludes(root))
+local function python_workspace_root(bufnr)
+  return python_project_root(bufnr) or inherited_python_workspace_root()
 end
 
 local function picker_cwd(bufnr)
@@ -147,7 +98,7 @@ local function jump_to_qf_item(item)
   vim.cmd("normal! zv")
 end
 
-local function sort_and_dedupe_items(items)
+local function dedupe_items(items)
   local deduped = {}
   local seen = {}
 
@@ -164,27 +115,17 @@ local function sort_and_dedupe_items(items)
     end
   end
 
-  table.sort(deduped, function(a, b)
-    if a.filename ~= b.filename then
-      return (a.filename or "") < (b.filename or "")
-    end
-
-    if a.lnum ~= b.lnum then
-      return (a.lnum or 0) < (b.lnum or 0)
-    end
-
-    return (a.col or 0) < (b.col or 0)
-  end)
-
   return deduped
 end
 
-local function telescope_location_picker(title, items, bufnr)
+local function telescope_location_picker(title, items, bufnr, opts)
+  opts = opts or {}
   local pickers = require("telescope.pickers")
   local entry_display = require("telescope.pickers.entry_display")
   local finders = require("telescope.finders")
   local conf = require("telescope.config").values
   local make_entry = require("telescope.make_entry")
+  local sorters = require("telescope.sorters")
   local cwd = picker_cwd(bufnr)
   local basename_counts = {}
   local displayer = entry_display.create({
@@ -250,12 +191,14 @@ local function telescope_location_picker(title, items, bufnr)
         results = items,
         entry_maker = entry_maker,
       }),
-      layout_strategy = "horizontal",
-      layout_config = {
-        preview_width = 0.6,
-      },
-      previewer = conf.qflist_previewer({}),
-      sorter = conf.generic_sorter({}),
+      layout_strategy = opts.layout_strategy or "horizontal",
+      layout_config = opts.layout_strategy == "vertical"
+          and (opts.layout_config or {})
+        or vim.tbl_deep_extend("force", {
+          preview_width = 0.6,
+        }, opts.layout_config or {}),
+      previewer = opts.previewer == false and false or conf.qflist_previewer({}),
+      sorter = opts.sorter == "empty" and sorters.empty() or conf.generic_sorter({}),
       push_cursor_on_edit = true,
       push_tagstack_on_edit = true,
     })
@@ -306,7 +249,7 @@ local function telescope_lsp_locations(method, title, opts)
       elseif #items == 1 then
         jump_to_qf_item(items[1])
       else
-        telescope_location_picker(title, items, bufnr)
+        telescope_location_picker(title, items, bufnr, opts.picker)
       end
     end)
   end
@@ -321,6 +264,15 @@ function M.setup()
     group = vim.api.nvim_create_augroup("user-lsp-attach", { clear = true }),
     callback = function(args)
       local bufnr = args.buf
+      local client = vim.lsp.get_client_by_id(args.data.client_id)
+
+      if client and (client.name == "ty" or client.name == "ruff") then
+        remember_python_workspace_root(client.root_dir)
+      end
+
+      if client and client.name == "ruff" then
+        client.server_capabilities.hoverProvider = false
+      end
 
       map(bufnr, "n", "gd", telescope_lsp_locations("textDocument/definition", "LSP Definitions"), "Go to definition")
       map(bufnr, "n", "gD", function()
@@ -336,7 +288,7 @@ function M.setup()
             params.context = { includeDeclaration = true }
             return params
           end,
-          postprocess = sort_and_dedupe_items,
+          postprocess = dedupe_items,
         }),
         "References"
       )
@@ -364,38 +316,40 @@ function M.setup()
     capabilities = capabilities,
   })
 
-  vim.lsp.config("basedpyright", {
+  vim.lsp.config("ty", {
     root_dir = function(bufnr, on_dir)
-      local root = python_project_root(bufnr)
+      local root = python_workspace_root(bufnr)
 
       if root then
         on_dir(root)
       end
     end,
-    before_init = function(init_params, config)
-      local root = init_params.rootUri and vim.uri_to_fname(init_params.rootUri) or init_params.rootPath
-      local pyright_config = root and (root .. "/pyrightconfig.json") or nil
-
-      if pyright_config and vim.uv.fs_stat(pyright_config) then
-        return
-      end
-
-      config.settings = config.settings or {}
-      config.settings.basedpyright = config.settings.basedpyright or {}
-      config.settings.basedpyright.analysis =
-        vim.tbl_deep_extend("force", {}, config.settings.basedpyright.analysis or {})
-      config.settings.basedpyright.analysis.exclude = python_analysis_excludes(root)
-    end,
     root_markers = python_root_markers,
     single_file_support = false,
     settings = {
-      basedpyright = {
-        analysis = {
-          autoSearchPaths = true,
-          diagnosticMode = "openFilesOnly",
-          typeCheckingMode = "basic",
-          useLibraryCodeForTypes = true,
-          exclude = python_base_excludes,
+      ty = {
+        completions = {
+          autoImport = true,
+        },
+      },
+    },
+  })
+
+  vim.lsp.config("ruff", {
+    root_dir = function(bufnr, on_dir)
+      local root = python_workspace_root(bufnr)
+
+      if root then
+        on_dir(root)
+      end
+    end,
+    root_markers = python_root_markers,
+    single_file_support = false,
+    init_options = {
+      settings = {
+        lineLength = 88,
+        lint = {
+          select = { "E", "F", "I", "B", "UP" },
         },
       },
     },
@@ -427,7 +381,8 @@ function M.setup()
   })
 
   vim.lsp.enable({
-    "basedpyright",
+    "ty",
+    "ruff",
     "rust_analyzer",
     "clangd",
     "bashls",
