@@ -9,6 +9,19 @@ local python_root_markers = {
   "uv.lock",
   "poetry.lock",
 }
+local python_base_excludes = {
+  "**/.git",
+  "**/.hg",
+  "**/.svn",
+  "**/__pycache__",
+  "**/.mypy_cache",
+  "**/.pytest_cache",
+  "**/.ruff_cache",
+  "**/.tox",
+  "**/.venv",
+  "**/venv",
+  "**/node_modules",
+}
 local workspace_root_markers = {
   ".git",
   "package.json",
@@ -17,12 +30,105 @@ local workspace_root_markers = {
   "compile_commands.json",
   "compile_flags.txt",
 }
+local ts_root_markers = {
+  { "tsconfig.json", "jsconfig.json", "package.json" },
+  { "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb", "bun.lock" },
+}
 
 local function map(bufnr, mode, lhs, rhs, desc)
   vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = desc })
 end
 
+local function current_file_dir(bufnr)
+  local name = vim.api.nvim_buf_get_name(bufnr)
+  return name ~= "" and vim.fs.dirname(name) or vim.fn.getcwd()
+end
+
+local function python_project_root(bufnr)
+  return vim.fs.root(bufnr, python_root_markers)
+end
+
+local python_gitignore_exclude_cache = {}
+
+local function merge_unique_patterns(...)
+  local merged = {}
+  local seen = {}
+
+  for i = 1, select("#", ...) do
+    for _, pattern in ipairs(select(i, ...)) do
+      if pattern and pattern ~= "" and not seen[pattern] then
+        seen[pattern] = true
+        table.insert(merged, pattern)
+      end
+    end
+  end
+
+  return merged
+end
+
+local function gitignore_to_pyright_pattern(line)
+  local pattern = vim.trim(line)
+
+  if pattern == "" or vim.startswith(pattern, "#") or vim.startswith(pattern, "!") then
+    return nil
+  end
+
+  if vim.startswith(pattern, "\\#") or vim.startswith(pattern, "\\!") then
+    pattern = pattern:sub(2)
+  end
+
+  local anchored = vim.startswith(pattern, "/")
+  pattern = pattern:gsub("^/", ""):gsub("/$", ""):gsub("^%./", "")
+
+  if pattern == "" then
+    return nil
+  end
+
+  if anchored or pattern:find("/", 1, true) then
+    return pattern
+  end
+
+  return "**/" .. pattern
+end
+
+local function python_gitignore_excludes(root)
+  if not root or root == "" then
+    return {}
+  end
+
+  if python_gitignore_exclude_cache[root] then
+    return python_gitignore_exclude_cache[root]
+  end
+
+  local gitignore = root .. "/.gitignore"
+  local ok, lines = pcall(vim.fn.readfile, gitignore)
+
+  if not ok then
+    python_gitignore_exclude_cache[root] = {}
+    return python_gitignore_exclude_cache[root]
+  end
+
+  local patterns = {}
+
+  for _, line in ipairs(lines) do
+    table.insert(patterns, gitignore_to_pyright_pattern(line))
+  end
+
+  python_gitignore_exclude_cache[root] = merge_unique_patterns(patterns)
+  return python_gitignore_exclude_cache[root]
+end
+
+local function python_analysis_excludes(root)
+  return merge_unique_patterns(python_base_excludes, python_gitignore_excludes(root))
+end
+
 local function picker_cwd(bufnr)
+  for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do
+    if client.root_dir and client.root_dir ~= "" then
+      return client.root_dir
+    end
+  end
+
   return vim.fs.root(bufnr, workspace_root_markers) or vim.fn.getcwd()
 end
 
@@ -40,26 +146,96 @@ local function jump_to_qf_item(item)
   vim.cmd("normal! zv")
 end
 
+local function sort_and_dedupe_items(items)
+  local deduped = {}
+  local seen = {}
+
+  for _, item in ipairs(items) do
+    local key = table.concat({
+      item.filename or "",
+      tostring(item.lnum or 0),
+      tostring(item.col or 0),
+    }, ":")
+
+    if not seen[key] then
+      seen[key] = true
+      table.insert(deduped, item)
+    end
+  end
+
+  table.sort(deduped, function(a, b)
+    if a.filename ~= b.filename then
+      return (a.filename or "") < (b.filename or "")
+    end
+
+    if a.lnum ~= b.lnum then
+      return (a.lnum or 0) < (b.lnum or 0)
+    end
+
+    return (a.col or 0) < (b.col or 0)
+  end)
+
+  return deduped
+end
+
 local function telescope_location_picker(title, items, bufnr)
   local pickers = require("telescope.pickers")
+  local entry_display = require("telescope.pickers.entry_display")
   local finders = require("telescope.finders")
   local conf = require("telescope.config").values
   local make_entry = require("telescope.make_entry")
   local cwd = picker_cwd(bufnr)
+  local displayer = entry_display.create({
+    separator = " ",
+    items = {
+      { remaining = true },
+    },
+  })
+
+  local entry_maker = function(item)
+    local relative = vim.fn.fnamemodify(item.filename, ":.")
+    local display_name = vim.fn.fnamemodify(relative, ":t")
+
+    return make_entry.set_default_entry_mt({
+      value = item,
+      ordinal = table.concat({
+        item.filename or "",
+        display_name,
+        relative,
+        tostring(item.lnum or 0),
+        item.text or "",
+      }, " "),
+      display = function(entry)
+        return displayer({
+          {
+            string.format("%s:%s", entry.display_name, tostring(entry.lnum)),
+            "TelescopeResultsIdentifier",
+          },
+        })
+      end,
+      display_name = display_name,
+      filename = item.filename,
+      lnum = item.lnum,
+      col = item.col,
+      text = item.text,
+      start = item.lnum,
+      path = item.filename,
+    }, {
+      cwd = cwd,
+    })
+  end
 
   pickers
     .new({}, {
       prompt_title = title,
       finder = finders.new_table({
         results = items,
-        entry_maker = make_entry.gen_from_quickfix({
-          cwd = cwd,
-          path_display = {
-            shorten = 1,
-            truncate = 3,
-          },
-        }),
+        entry_maker = entry_maker,
       }),
+      layout_strategy = "horizontal",
+      layout_config = {
+        preview_width = 0.6,
+      },
       previewer = conf.qflist_previewer({}),
       sorter = conf.generic_sorter({}),
       push_cursor_on_edit = true,
@@ -154,6 +330,7 @@ function M.setup()
             params.context = { includeDeclaration = true }
             return params
           end,
+          postprocess = sort_and_dedupe_items,
         }),
         "References"
       )
@@ -182,6 +359,22 @@ function M.setup()
   })
 
   vim.lsp.config("basedpyright", {
+    root_dir = function(bufnr, on_dir)
+      local root = python_project_root(bufnr)
+
+      if root then
+        on_dir(root)
+      end
+    end,
+    before_init = function(init_params, config)
+      local root = init_params.rootUri and vim.uri_to_fname(init_params.rootUri) or init_params.rootPath
+
+      config.settings = config.settings or {}
+      config.settings.basedpyright = config.settings.basedpyright or {}
+      config.settings.basedpyright.analysis =
+        vim.tbl_deep_extend("force", {}, config.settings.basedpyright.analysis or {})
+      config.settings.basedpyright.analysis.exclude = python_analysis_excludes(root)
+    end,
     root_markers = python_root_markers,
     single_file_support = false,
     settings = {
@@ -191,24 +384,22 @@ function M.setup()
           diagnosticMode = "openFilesOnly",
           typeCheckingMode = "basic",
           useLibraryCodeForTypes = true,
-          exclude = {
-            "**/.git",
-            "**/.hg",
-            "**/.svn",
-            "**/__pycache__",
-            "**/.mypy_cache",
-            "**/.pytest_cache",
-            "**/.ruff_cache",
-            "**/.tox",
-            "**/.venv",
-            "**/venv",
-            "**/node_modules",
-            "**/dist",
-            "**/build",
-          },
+          exclude = python_base_excludes,
         },
       },
     },
+  })
+
+  vim.lsp.config("ts_ls", {
+    root_dir = function(bufnr, on_dir)
+      local deno_root = vim.fs.root(bufnr, { "deno.json", "deno.jsonc", "deno.lock" })
+
+      if deno_root then
+        return
+      end
+
+      on_dir(vim.fs.root(bufnr, ts_root_markers) or current_file_dir(bufnr))
+    end,
   })
 
   vim.lsp.config("rust_analyzer", {

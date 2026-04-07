@@ -261,7 +261,7 @@ frg() {
   query="${1:-.}"
 
   line=$(
-    rg --line-number --no-heading "$query" | \
+    rg --follow --line-number --no-heading "$query" | \
       fzf --delimiter : \
         --preview '
           file={1}
@@ -277,7 +277,7 @@ frg() {
 
   file=$(printf '%s\n' "$line" | cut -d: -f1)
   lineno=$(printf '%s\n' "$line" | cut -d: -f2)
-  hx "+${lineno}" "$file"
+  nvim "+${lineno}" "$file"
 }
 
 ff() {
@@ -292,7 +292,7 @@ ff() {
         --preview 'bat --style=plain --color=always {}'
   ) || return
 
-  hx "$file"
+  nvim "$file"
 }
 
 if [ -r "$HOME/.local/bin/env" ]; then

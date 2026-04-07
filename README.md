@@ -134,10 +134,11 @@ WSL 常见本地覆盖:
 `nvim/` 现在是一个不依赖 `LazyVim` 的极简自配方案，继续通过 `stow` 接管到 `~/.config/nvim`。
 
 - 插件管理: `lazy.nvim`
-- 主题: `tokyonight.nvim`
+- 主题: `catppuccin`（当前 flavour: `macchiato`）
 - 语法树: `nvim-treesitter`
 - LSP: `nvim-lspconfig`
 - 补全: `blink.cmp`（锁在 `1.*`，避免误跟进 V2）
+- Git 改动: `gitsigns.nvim`
 - lint: `nvim-lint`
 - 注释: `Comment.nvim` + `nvim-ts-context-commentstring`
 

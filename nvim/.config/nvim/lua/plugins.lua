@@ -51,7 +51,28 @@ local treesitter_languages = {
   "yaml",
 }
 
-local treesitter_parser_dir = vim.fn.stdpath("data") .. "/treesitter"
+local treesitter_install_dir = vim.fn.stdpath("data") .. "/treesitter-site"
+local treesitter_filetypes = {
+  "bash",
+  "c",
+  "cpp",
+  "javascript",
+  "javascriptreact",
+  "json",
+  "lua",
+  "markdown",
+  "python",
+  "query",
+  "rust",
+  "sh",
+  "toml",
+  "typescript",
+  "typescriptreact",
+  "vim",
+  "vimdoc",
+  "yaml",
+  "zsh",
+}
 
 return {
   {
@@ -59,11 +80,9 @@ return {
     name = "catppuccin",
     priority = 1000,
     opts = {
-      flavour = "mocha",
+      flavour = "macchiato",
       integrations = {
-        telescope = {
-          enabled = true,
-        },
+        telescope = { enabled = true },
       },
     },
     config = function(_, opts)
@@ -80,10 +99,11 @@ return {
   },
   {
     "nvim-telescope/telescope.nvim",
-    branch = "0.1.x",
+    branch = "master",
     dependencies = {
       "nvim-lua/plenary.nvim",
       "nvim-telescope/telescope-fzf-native.nvim",
+      "nvim-treesitter/nvim-treesitter",
     },
     config = function()
       local telescope = require("telescope")
@@ -118,17 +138,41 @@ return {
   },
   {
     "nvim-treesitter/nvim-treesitter",
-    branch = "master",
+    branch = "main",
     build = ":TSUpdate",
     config = function()
-      vim.opt.runtimepath:prepend(treesitter_parser_dir)
+      local treesitter = require("nvim-treesitter")
 
-      require("nvim-treesitter.configs").setup({
-        parser_install_dir = treesitter_parser_dir,
-        ensure_installed = treesitter_languages,
-        highlight = { enable = true },
-        indent = { enable = false },
+      treesitter.setup({
+        install_dir = treesitter_install_dir,
       })
+
+      vim.treesitter.language.register("bash", { "sh", "zsh" })
+      vim.treesitter.language.register("javascript", { "javascriptreact" })
+      vim.treesitter.language.register("tsx", { "typescriptreact" })
+
+      vim.api.nvim_create_autocmd("FileType", {
+        group = vim.api.nvim_create_augroup("user-treesitter-start", { clear = true }),
+        pattern = treesitter_filetypes,
+        callback = function(args)
+          pcall(vim.treesitter.start, args.buf)
+        end,
+      })
+
+      local installed = {}
+      for _, lang in ipairs(treesitter.get_installed("parsers")) do
+        installed[lang] = true
+      end
+
+      local missing = vim.tbl_filter(function(lang)
+        return not installed[lang]
+      end, treesitter_languages)
+
+      if #missing > 0 then
+        vim.schedule(function()
+          treesitter.install(missing, { summary = false })
+        end)
+      end
     end,
   },
   {
@@ -155,6 +199,86 @@ return {
     dependencies = { "saghen/blink.cmp" },
     config = function()
       require("config.lsp").setup()
+    end,
+  },
+  {
+    "lewis6991/gitsigns.nvim",
+    version = "1.*",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    opts = function()
+      local function toggle_diffthis()
+        local current_tab = vim.api.nvim_get_current_tabpage()
+        local current_win = vim.api.nvim_get_current_win()
+
+        if vim.wo[current_win].diff then
+          for _, win in ipairs(vim.api.nvim_tabpage_list_wins(current_tab)) do
+            if vim.api.nvim_win_is_valid(win) then
+              local buf = vim.api.nvim_win_get_buf(win)
+              local name = vim.api.nvim_buf_get_name(buf)
+
+              if vim.wo[win].diff then
+                vim.wo[win].diff = false
+              end
+
+              if win ~= current_win and name:match("^gitsigns://") then
+                pcall(vim.api.nvim_win_close, win, true)
+              end
+            end
+          end
+
+          return
+        end
+
+        require("gitsigns").diffthis()
+      end
+
+      return {
+        signs = {
+          add = { text = "|" },
+          change = { text = "|" },
+          delete = { text = "_" },
+          topdelete = { text = "-" },
+          changedelete = { text = "~" },
+        },
+        attach_to_untracked = true,
+        current_line_blame = false,
+        signcolumn = true,
+        numhl = false,
+        linehl = false,
+        word_diff = false,
+        watch_gitdir = {
+          follow_files = true,
+        },
+        on_attach = function(bufnr)
+          local gitsigns = require("gitsigns")
+          local map = function(mode, lhs, rhs, desc)
+            vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = desc })
+          end
+
+          map("n", "]c", function()
+            if vim.wo.diff then
+              vim.cmd.normal({ "]c", bang = true })
+            else
+              gitsigns.nav_hunk("next")
+            end
+          end, "Next git hunk")
+
+          map("n", "[c", function()
+            if vim.wo.diff then
+              vim.cmd.normal({ "[c", bang = true })
+            else
+              gitsigns.nav_hunk("prev")
+            end
+          end, "Previous git hunk")
+
+          map("n", "<leader>gp", gitsigns.preview_hunk_inline, "Preview hunk")
+          map("n", "<leader>gb", gitsigns.blame_line, "Blame line")
+          map("n", "<leader>gB", gitsigns.toggle_current_line_blame, "Toggle line blame")
+          map("n", "<leader>gs", gitsigns.stage_hunk, "Stage hunk")
+          map("n", "<leader>gR", gitsigns.reset_hunk, "Reset hunk")
+          map("n", "<leader>gd", toggle_diffthis, "Toggle diff view")
+        end,
+      }
     end,
   },
   {
